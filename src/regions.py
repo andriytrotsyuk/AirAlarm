@@ -112,6 +112,14 @@ _REGIONS = [
         "id": 25,
         "name": "м. Київ",
     },
+    {
+        "id": 26,
+        "name": "Автономна Республіка Крим",
+    },
+    {
+        "id": 27,
+        "name": "м. Севастополь",
+    }
 ]
 NAMES = {state["id"]: state["name"] for state in _REGIONS}
 IDS = {state["name"]: state["id"] for state in _REGIONS}

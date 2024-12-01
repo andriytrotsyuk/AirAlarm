@@ -1,17 +1,16 @@
 import datetime
-import json
 import logging.handlers
 import sys
 from pathlib import Path
 from tkinter import *
 from tkinter import ttk
-from urllib.request import Request, urlopen
 
 import pygame
 
 import autostart
 import regions
 from storage import State
+from provider import is_alarm
 
 LOG_FILENAME = "airalarm.log"
 logger = logging.getLogger(__name__)
@@ -94,17 +93,7 @@ def main():
     def IsAlarm(City):
         if City == regions.TEST_NAME:
             return STATE.is_test_alarm()
-        request = Request(
-            "https://alerts.com.ua/api/states",
-            headers={"X-API-Key": "95d44c372a0ff7220475e373ece7e0ac3362bfdc"},
-        )
-        with urlopen(request) as response:
-            data = json.load(response)
-        states = data["states"]
-        for state in states:
-            if state["name"] == City and state["alert"]:
-                return True
-        return False
+        return is_alarm(regions.IDS[City])
 
     def NowInSec():
         return int((datetime.datetime.now() - datetime.datetime(1, 1, 1, 0, 0)).total_seconds())
@@ -213,7 +202,7 @@ def main():
             pygame.mixer.music.queue(BASE_PATH / "Sound/gimn.mp3")
             root.after(61000, MusicOff)
 
-        root.after(2000, Refresh)
+        root.after(6000, Refresh)
 
     locFrame = Frame(root)
     alarmFrame = Frame(root)
