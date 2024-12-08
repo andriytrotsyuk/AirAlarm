@@ -2,6 +2,8 @@ import json
 from urllib.request import Request, urlopen
 
 
+WAIT_MS = 6000
+
 LOCATION_MAP = {
     21: 3,
     1: 4,

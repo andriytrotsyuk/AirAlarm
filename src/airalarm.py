@@ -10,7 +10,7 @@ import pygame
 import autostart
 import regions
 from storage import State
-from provider import is_alarm
+from providers import is_alarm, WAIT_MS
 
 LOG_FILENAME = "airalarm.log"
 logger = logging.getLogger(__name__)
@@ -202,7 +202,7 @@ def main():
             pygame.mixer.music.queue(BASE_PATH / "Sound/gimn.mp3")
             root.after(61000, MusicOff)
 
-        root.after(6000, Refresh)
+        root.after(WAIT_MS, Refresh)
 
     locFrame = Frame(root)
     alarmFrame = Frame(root)
