@@ -10,7 +10,7 @@ import pygame
 import autostart
 import regions
 from storage import State
-from provider import is_alarm
+from providers import is_alarm
 
 LOG_FILENAME = "airalarm.log"
 logger = logging.getLogger(__name__)
