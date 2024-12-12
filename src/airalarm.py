@@ -25,7 +25,7 @@ if getattr(sys, 'frozen', False):
 else:
     # Running in a normal Python process
     RUNNING_FILE = __file__
-BASE_PATH = Path(RUNNING_FILE).parent / "data"
+BASE_PATH = Path(RUNNING_FILE).parent / "_internal"
 SETTINGS_PATH = BASE_PATH / "settings.txt"
 ICONS_PATH = BASE_PATH / "icons"
 APP_NAME = "Повітряна тривога"

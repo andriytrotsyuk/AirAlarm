@@ -10,4 +10,4 @@ APPLICATIONS_DIR=~/.local/share/applications
 mkdir -p $APPLICATIONS_DIR
 DESKTOP_FILE="$APP_NAME.desktop"
 cp "$SCRIPT_DIR/$DESKTOP_FILE" $APPLICATIONS_DIR
-sed -i "2iIcon=$APP_DIR/megaphone.svg\nExec=$APP_DIR/$APP_NAME" "$APPLICATIONS_DIR/$DESKTOP_FILE"
+sed -i "2iIcon=$APP_DIR/_internal/megaphone.svg\nExec=$APP_DIR/$APP_NAME" "$APPLICATIONS_DIR/$DESKTOP_FILE"
