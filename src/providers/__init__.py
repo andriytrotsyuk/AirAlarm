@@ -1,3 +1,3 @@
-__all__ = ('is_alarm', 'WAIT_MS')
+__all__ = ('get_active_alarm_start_at', 'WAIT_MS', 'REGIONS')
 
-from .ukrainealarm import is_alarm, WAIT_MS
+from .ukrainealarm import get_active_alarm_start_at, WAIT_MS, REGIONS

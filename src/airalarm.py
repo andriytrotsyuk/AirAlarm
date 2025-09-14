@@ -1,16 +1,16 @@
 import datetime
 import logging.handlers
-import sys
-from pathlib import Path
-from tkinter import *
+import re
+import tkinter as tk
 from tkinter import ttk
 
 import pygame
 
 import autostart
-import regions
+from conf import ICONS_PATH, START_PATH, END_PATH, SILENCE_PATH, ANTHEM_PATH, ANTHEM_TIME
+from providers import get_active_alarm_start_at, WAIT_MS, REGIONS
 from storage import State
-from providers import is_alarm, WAIT_MS
+from settings import SETTINGS
 
 LOG_FILENAME = "airalarm.log"
 logger = logging.getLogger(__name__)
@@ -19,262 +19,324 @@ handler = logging.handlers.RotatingFileHandler(LOG_FILENAME, maxBytes=10 * 1024 
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-if getattr(sys, 'frozen', False):
-    # Running in a PyInstaller bundle
-    RUNNING_FILE = sys.executable
-else:
-    # Running in a normal Python process
-    RUNNING_FILE = __file__
-BASE_PATH = Path(RUNNING_FILE).parent / "_internal"
-SETTINGS_PATH = BASE_PATH / "settings.txt"
-ICONS_PATH = BASE_PATH / "icons"
+
 APP_NAME = "Повітряна тривога"
+APP_STATE = State()
+
+class App:
+    def __init__(self):
+        # Use `className` parameter here to set name of the window that is visible only in linux Gnome desktop environment
+        self._root = tk.Tk(className=APP_NAME)
+        self._root.title(APP_NAME)
+        self._root.resizable(width=False, height=False)
+        self._root.wm_iconphoto(True, *(tk.PhotoImage(file=path) for path in ICONS_PATH.iterdir()))
+        self._root.bind("<Button-1>", self._on_click)
+
+        self.frame = ttk.Frame(self._root)
+        self.frame.grid(column=0, row=0, sticky=(tk.N, tk.W, tk.E, tk.S))
+
+        pygame.mixer.init()
+
+        self._settings_frame = SettingsFrame(self)
+        self._region_frame = RegionFrame(self)
+
+        copyright_label = ttk.Label(self.frame, text="© 2023, Кір'янчук Юрій")
+        copyright_label.grid(row=2, column=0, padx=10, pady=(50, 10), sticky="W")
+
+    def mainloop(self):
+        self._root.mainloop()
+
+    def _on_click(self, event):
+        event.widget.focus()
+    
+    def after(self, ms, func=None, *args):
+        return self._root.after(ms, func=func, *args)
+    
+    def after_cancel(self, timer):
+        self._root.after_cancel(timer)
+    
+    def on_region_changed(self, region_id):
+        self._settings_frame.on_region_changed(region_id)
 
 
-def main():
-    def ComboChange(event):
-        STATE.region_name = regionsCombobox.get()
-        save()
+class RegionFrame:
+    def __init__(self, parent: App):
+        self._parent = parent
+        frame = ttk.Frame(parent.frame)
+        frame.grid(row=0, column=0, padx=10, pady=10, sticky="W")
+        
+        label = ttk.Label(frame, text="Оберіть свій регіон", font="Impact 14")
+        label.grid(row=0, column=0, sticky="W", padx=5)
 
-    def save():
-        with SETTINGS_PATH.open("r", encoding="utf-8") as f:
-            settings = eval(f.read())
-        with SETTINGS_PATH.open("w", encoding="utf-8") as f:
-            settings["city"] = regions.IDS[STATE.region_name]
-            settings["c"] = is_minute_enabled.get()
-            settings["r"] = mode.get()
-            settings["q"] = autoenable_notifications.get()
-            settings["w"] = w.get()
-            settings["t1"] = t1
-            print(settings, file=f)
+        self._state_index, self._district_index, self._community_index = REGIONS.get_indexes(SETTINGS.region_id)
+        
+        self._state_combobox = ttk.Combobox(
+            frame,
+            state="readonly",
+            width=REGIONS.max_len,
+            font="Arial 14",
+            values=REGIONS.state_names,
+        )
+        if self._state_index is not None:
+            self._state_combobox.current(self._state_index)
+        self._state_combobox.bind("<<ComboboxSelected>>", self._on_state_selected)
+        self._state_combobox.grid(row=0, column=1, sticky="W", padx=5)
 
-    def autoStartUp():
-        if w.get() == 0:
-            autostart.disable()
-        elif w.get() == 1:
-            autostart.enable()
-        save()
-
-    def switch_notification(event):
-        pygame.mixer.music.stop()
-        STATE.SirenaPlayed = False
-        STATE.SirenaNowPlaying = False
-        STATE.MusicPlaying = False
-        button = event.widget
-        if STATE.alarmNotification == 0:
-            STATE.alarmNotification = 1
-            STATE.reset_test_alarm()
-            try:
-                # It is used to destroy window with time adjustment when this window is open and clicked button to enable
-                # alarm
-                app.destroy()
-            except:
-                pass
-            button.config(background="lime", text="Сповіщення ввімкнені")
-            timeAlarm1.config(state="disabled")
-            timeAlarm2.config(state="disabled")
-            regionsCombobox.config(state="disabled")
-            minuteCheckBox.config(state="disabled")
-            ConfigTimeAlarm.config(state="disabled")
-            autoOnCheckBox.config(state="disabled")
-            autoStartUpCheckBox.config(state="disabled")
-
+        self._district_combobox = ttk.Combobox(
+            frame,
+            state="readonly",
+            width=REGIONS.max_len,
+            font="Arial 14",
+        )
+        if self._district_index is None:
+            self._districts = []
         else:
-            STATE.alarmNotification = 0
-            button.config(background="pink", text="Сповіщення вимкнені")
-            timeAlarm1.config(state="normal")
-            timeAlarm2.config(state="normal")
-            regionsCombobox.config(state="read")
-            minuteCheckBox.config(state="normal")
-            ConfigTimeAlarm.config(state="normal")
-            autoOnCheckBox.config(state="normal")
-            autoStartUpCheckBox.config(state="normal")
+            self._districts = REGIONS[self._state_index].region_child_ids
+            self._district_combobox.config(values=[district.region_name for district in self._districts])
+            self._district_combobox.current(self._district_index)
+            self._district_combobox.grid(row=1, column=1, sticky="W", padx=5)
+        self._district_combobox.bind("<<ComboboxSelected>>", self._on_district_selected)
 
-    def IsAlarm(City):
-        if City == regions.TEST_NAME:
-            return STATE.is_test_alarm()
-        return is_alarm(regions.IDS[City])
+        self._community_combobox = ttk.Combobox(
+            frame,
+            state="readonly",
+            width=REGIONS.max_len,
+            font="Arial 14",
+        )
+        if self._community_index is None:
+            self._communities = []
+        else:
+            self._communities = REGIONS[self._state_index].region_child_ids[self._district_index].region_child_ids
+            self._community_combobox.config(values=[community.region_name for community in self._communities])
+            self._community_combobox.current(self._community_index)
+            self._community_combobox.grid(row=2, column=1, sticky="W", padx=5)
+        self._community_combobox.bind("<<ComboboxSelected>>", self._on_community_selected)
+        self._on_region_changed(SETTINGS.region_id)
 
-    def NowInSec():
-        return int((datetime.datetime.now() - datetime.datetime(1, 1, 1, 0, 0)).total_seconds())
+    def _on_state_selected(self, event):
+        index = event.widget.current()
+        if index == self._state_index:
+            return
+        self._state_index = index
+        self._districts = REGIONS[index].region_child_ids
+        if self._districts:
+            self._district_combobox.set('')
+            self._community_combobox.set('')
+            district_names = [district.region_name for district in self._districts]
+            self._district_combobox.config(values=district_names)
+            self._district_combobox.grid(row=1, column=1, sticky="W", padx=5)
+            self._on_region_changed(None)
+        else:
+            self._on_region_changed(REGIONS.states[index].region_id)
+            self._district_combobox.grid_remove()
+        self._community_combobox.grid_remove()
 
-    def save_time(entr1):
-        nonlocal t1
+    def _on_district_selected(self, event):
+        index = event.widget.current()
+        if index == self._district_index:
+            return
+        self._district_index = index
+        self._communities = self._districts[index].region_child_ids
+        if self._communities:
+            self._community_combobox.set('')
+            community_names = [community.region_name for community in self._communities]
+            self._community_combobox.config(values=community_names)
+            self._community_combobox.grid(row=2, column=1, sticky="W", padx=5)
+        else:
+            self._community_combobox.grid_remove()
+        self._on_region_changed(None)
+
+    def _on_community_selected(self, event):
+        index = event.widget.current()
+        if index == self._community_index:
+            return
+        self._community_index = index
+        self._on_region_changed(self._communities[index].region_id)
+    
+    def _on_region_changed(self, region_id):
+        SETTINGS.region_id = region_id
+        self._parent.on_region_changed(region_id)
+
+
+class SettingsFrame:
+    def __init__(self, parent: App):
+        self._parent = parent
+        self.frame = ttk.Frame(parent.frame)
+        self.frame.grid(row=1, column=0, padx=10, pady=10, sticky="W")
+        
+        TimePicker(self.frame)
+        self._switch = Switch(self)
+        additional_functions_label = ttk.Label(self.frame, text="Додаткові функції", font="Impact 16")
+        additional_functions_label.grid(row=6, column=0, sticky="W", padx=5, pady=(30, 0))
+        Anthem(self)
+        Autostart(self)
+
+    def after(self, ms, func=None, *args):
+        return self._parent.after(ms, func=func, *args)
+    
+    def after_cancel(self, timer):
+        self._parent.after_cancel(timer)
+
+    def on_region_changed(self, region_id):
+        self._switch.on_region_changed(region_id)
+
+class TimePicker:
+    def __init__(self, parent: ttk.Frame):
+        notification_label = ttk.Label(parent, text="Тривалість оголошення -", font="Arial 14")
+        notification_label.grid(row=0, column=0, sticky="W", padx=(5, 0))
+        
+        validate_command = parent.register(self._validate)
+        
+        self._entry = ttk.Entry(parent, width=8, validate='key', validatecommand=(validate_command, '%P'))
+        self._entry.insert(0, SETTINGS.time)
+        self._entry.grid(row=0, column=1, sticky="W")
+        self._entry.bind("<FocusOut>", self._on_focus_out)
+        
+        minutes_label = ttk.Label(parent, text=" хв", font="Arial 14")
+        minutes_label.grid(row=0, column=2, sticky="W", padx=(0, 5))
+
+    def _validate(self, newval):
+        if re.match('^[0-9]*$', newval) is None or len(newval) > 2:
+            return False
+        if newval == '0':
+            return False
+        try:    
+            SETTINGS.time = int(newval)
+        except ValueError:
+            pass
+        return True
+
+    def _on_focus_out(self, event):
+        event.widget.delete(0, tk.END)
+        event.widget.insert(0, SETTINGS.time)
+
+
+class Switch:
+    def __init__(self, parent: SettingsFrame):
+        self._parent = parent
+        
+        self._label = ttk.Label(parent.frame, text="")
+        self._label.grid(row=1, column=0, sticky="W", padx=5)
+        
+        self._start_notification_sound = pygame.mixer.Sound(START_PATH)
+        self._end_notification_sound = pygame.mixer.Sound(END_PATH)
+    
+    def on_region_changed(self, region_id):
+        self._start_notification_sound.stop()
+        self._end_notification_sound.stop()
+        APP_STATE.SirenaPlayed = False
+        APP_STATE.SirenaNowPlaying = False
+        self._label.config(text='Немає тривоги')
+        if region_id is None:
+            self._disable()
+        else:
+            self._enable()
+
+    def _disable(self):
+        APP_STATE.alarmNotification = False
+        self._label.config(text='')
+
+    def _enable(self):
+        APP_STATE.alarmNotification = True
+        self.Refresh()
+
+    def Refresh(self):
         try:
-            t1 = int(float(entr1.get())) if int(float(entr1.get())) == float(entr1.get()) else float(entr1.get())
-            save()
-            timeAlarm1.config(text=f"Оголошення - {t1} хвилин")
-            app.destroy()
-        except:
-            but.config(text="Помилка")
-            root.after(400, lambda: but.config(text="Зберегти"))
-
-    def ChangeTimeAlarm():
-        global app, but
-        app = Tk(className=APP_NAME)
-        app.title("Змінення часу тривоги")
-        app.resizable(0, 0)
-        app.update()
-        x = app.winfo_screenwidth() / 2 - app.winfo_reqwidth() / 2
-        y = app.winfo_screenheight() / 2 - app.winfo_reqheight() / 2
-        app.wm_geometry("+%d+%d" % (x, y))
-
-        frame = Frame(app)
-        frame.grid(pady=10, padx=10)
-        lb1 = Label(frame, text="Оголошення: ", font="Arial 12")
-        lb1.grid(row=0, column=0)
-        but = Button(frame, text="Зберегти", font="Arial 12", command=lambda: save_time(entr1))
-        but.grid()
-
-        entr1 = Entry(frame, width=8)
-        entr1.grid(row=0, column=1)
-
-        app.mainloop()
-
-    # Use `className` parameter here to set name of the window that is visible only in linux Gnome desktop environment
-    root = Tk(className=APP_NAME)
-
-    root.title(APP_NAME)
-    root.resizable(width=False, height=False)
-    root.wm_iconphoto(True, *(PhotoImage(file=path) for path in ICONS_PATH.iterdir()))
-    pygame.init()
-
-    with SETTINGS_PATH.open("r", encoding="utf-8") as f:
-        settings = eval(f.read())
-
-    mode = IntVar()
-    mode.set(settings["r"])
-    is_minute_enabled = IntVar()
-    is_minute_enabled.set(settings["c"])
-    autoenable_notifications = IntVar()
-    autoenable_notifications.set(settings["q"])
-    w = IntVar()
-    w.set(settings["w"])
-    STATE = State(regions.NAMES[settings["city"]])
-    t1 = settings["t1"]
-    lengthVdbj = int(pygame.mixer.Sound(BASE_PATH / "Sound/vdbj.mp3").get_length())
-
-    def SirenaPlay(link, sec=1, count=-1):
-        pygame.mixer.music.stop()
-        pygame.mixer.music.load(link)
-        pygame.mixer.music.play(count)
-        STATE.SirenaNowPlaying = True
-        STATE.end = NowInSec() + sec
-
-    def MusicOff():
-        STATE.MusicPlaying = False
-
-    def Refresh():
-        try:
-            if STATE.alarmNotification:
-                Is_Alarm = IsAlarm(STATE.region_name)
-                logger.debug("Are authorities signalling about air alarm now: %s", Is_Alarm)
-                logger.debug("Playing siren in the beginning and in the end mode is enabled: %s", mode.get() == 1)
-                logger.debug("Has siren played already: %s", STATE.SirenaPlayed)
-                logger.debug("Is siren playing now: %s", STATE.SirenaNowPlaying)
-                if Is_Alarm and mode.get() == 1 and not STATE.SirenaPlayed and not STATE.SirenaNowPlaying:  # Тривога
-                    SirenaPlay(BASE_PATH / "Sound/sirena.mp3", int(t1 * 60))
-                elif not Is_Alarm and mode.get() == 1 and STATE.SirenaPlayed and not STATE.SirenaNowPlaying:  # Відбій
-                    SirenaPlay(BASE_PATH / "Sound/vdbj.mp3", lengthVdbj, 1)
-                elif Is_Alarm and not STATE.SirenaNowPlaying and mode.get() == 2:  # Сирена
-                    SirenaPlay(BASE_PATH / "Sound/sirena.mp3")
-                elif not Is_Alarm and STATE.SirenaNowPlaying and mode.get() == 2:
-                    pygame.mixer.music.stop()
-                    STATE.SirenaNowPlaying = False
-                    STATE.SirenaPlayed = False
+            if APP_STATE.alarmNotification:
+                start_at = get_active_alarm_start_at(SETTINGS.region_id)
+                logger.debug("Are authorities signalling about air alarm now: %s", start_at)
+                logger.debug("Has siren played already: %s", APP_STATE.SirenaPlayed)
+                logger.debug("Is siren playing now: %s", APP_STATE.SirenaNowPlaying)
+                if start_at is None:
+                    if APP_STATE.SirenaPlayed:  # Відбій
+                        # FIXME: play after anthem
+                        length = self._end_notification_sound.get_length()
+                        self._start_notification_sound.stop()
+                        self._end_notification_sound.play(loops=1)
+                        APP_STATE.SirenaPlayed = False
+                        self._label.config(text="Немає тривоги")
+                        APP_STATE.SirenaNowPlaying = True
+                        APP_STATE.end = datetime.datetime.now() + datetime.timedelta(seconds=length)
+                else:
+                    end_play_at = start_at + datetime.timedelta(minutes=SETTINGS.time)
+                    if end_play_at < datetime.datetime.now(datetime.UTC):
+                        APP_STATE.SirenaPlayed = True
+                        self._label.config(text="Тривога")
+                    if not APP_STATE.SirenaPlayed:  # Тривога
+                        seconds = SETTINGS.time * 60
+                        pygame.mixer.music.stop()
+                        self._end_notification_sound.stop()
+                        self._start_notification_sound.play(loops=-1, maxtime=seconds * 1000, fade_ms=5 * 1000)
+                        APP_STATE.SirenaPlayed = True
+                        self._label.config(text="Тривога")
+                        APP_STATE.SirenaNowPlaying = True
+                        APP_STATE.end = datetime.datetime.now() + datetime.timedelta(seconds=seconds)
         except Exception as err:
             logger.exception(err)
-        if STATE.SirenaNowPlaying and mode.get() == 1 and NowInSec() > STATE.end:
-            pygame.mixer.music.stop()
-            STATE.SirenaNowPlaying = False
-            STATE.SirenaPlayed = not STATE.SirenaPlayed
-        if (
-                datetime.datetime.now().hour == 9
-                and datetime.datetime.now().minute == 0
-                and not STATE.MusicPlaying
-                and not STATE.SirenaNowPlaying
-                and is_minute_enabled.get() == 1
-        ):
-            STATE.MusicPlaying = True
-            pygame.mixer.music.stop()
-            pygame.mixer.music.load(BASE_PATH / "Sound/hvilina.mp3")
-            pygame.mixer.music.play()
-            pygame.mixer.music.queue(BASE_PATH / "Sound/gimn.mp3")
-            root.after(61000, MusicOff)
-
-        root.after(WAIT_MS, Refresh)
-
-    locFrame = Frame(root)
-    alarmFrame = Frame(root)
-    locFrame.grid(row=0, column=0, padx=10, pady=10, sticky="W")
-    alarmFrame.grid(row=1, column=0, padx=10, pady=10, sticky="W")
-
-    lb_region = Label(locFrame, text="Область", font="Impact 14")
-    lb_timeAlarm = Label(alarmFrame, text="Довжина сирени", font="Impact 16")
-    lb_additionalFunc = Label(alarmFrame, text="Додаткові функції", font="Impact 16")
-    lb_copyright = Label(root, text="© 2023, Кір'янчук Юрій")
-    lb_region.grid(row=0, column=0, sticky="W", padx=5)
-    lb_timeAlarm.grid(row=2, column=0, sticky="W", padx=5, pady=(30, 0))
-    lb_additionalFunc.grid(row=6, column=0, sticky="W", padx=5, pady=(30, 0))
-    lb_copyright.grid(row=2, column=0, padx=10, pady=(50, 10), sticky="W")
-
-    regionsCombobox = ttk.Combobox(
-        locFrame,
-        state="readonly",
-        width=len(max(regions.LIST, key=len)),
-        font="Arial 14",
-        values=regions.LIST,
-    )
-    regionsCombobox.grid(row=0, column=1, sticky="W", padx=5)
-    regionsCombobox.current(regions.LIST.index(STATE.region_name))
-
-    alarmSwitchButton = Button(alarmFrame, background="pink", text="Сповіщення вимкнені", font="Arial 14")
-    ConfigTimeAlarm = Button(alarmFrame, text="Змінити час тривоги", font="Arial 10", command=ChangeTimeAlarm)
-    ConfigTimeAlarm.grid(row=3, column=1, sticky="W", padx=5)
-    alarmSwitchButton.grid(row=0, column=0, sticky="W", padx=5)
-
-    timeAlarm1 = Radiobutton(
-        alarmFrame,
-        variable=mode,
-        value=1,
-        text=f"Оголошення - {t1} хвилин", font="Arial 14",
-        command=save,
-    )
-    timeAlarm2 = Radiobutton(alarmFrame, variable=mode, value=2, text="Від початку до кінця", font="Arial 14", command=save)
-    minuteCheckBox = Checkbutton(
-        alarmFrame,
-        variable=is_minute_enabled,
-        text="Хвилина мовчання і гімн України",
-        font="Arial 14",
-        command=save,
-    )
-    autoOnCheckBox = Checkbutton(
-        alarmFrame,
-        variable=autoenable_notifications,
-        text="Ввімкнення сповіщень при запуску програми",
-        font="Arial 14",
-        command=save,
-    )
-    autoStartUpCheckBox = Checkbutton(alarmFrame, variable=w, text="Автозапуск", font="Arial 14", command=autoStartUp)
-    timeAlarm1.grid(row=3, column=0, sticky="W", padx=5)
-    timeAlarm2.grid(row=4, column=0, sticky="W", padx=5)
-    minuteCheckBox.grid(row=7, column=0, sticky="W", padx=5)
-    autoOnCheckBox.grid(row=8, column=0, sticky="W", padx=5)
-    autoStartUpCheckBox.grid(row=9, column=0, sticky="W", padx=5)
-
-    regionsCombobox.bind("<<ComboboxSelected>>", ComboChange)
-    alarmSwitchButton.bind("<Button-1>", switch_notification)
-
-    if autoenable_notifications.get() == 1:
-        e = Event()
-        e.widget = alarmSwitchButton
-        switch_notification(e)
-
-    Refresh()
-    root.mainloop()
+        if APP_STATE.SirenaNowPlaying and datetime.datetime.now() > APP_STATE.end:
+            APP_STATE.SirenaNowPlaying = False
+        self._parent.after(WAIT_MS, self.Refresh)
 
 
-try:
-    main()
-except Exception as err:
-    logger.exception(err)
+class Anthem:
+    def __init__(self, parent: SettingsFrame):
+        self._parent = parent
+
+        self._is_anthem_enabled = tk.BooleanVar(value=SETTINGS.is_anthem_enabled)
+        self._is_anthem_enabled.set(SETTINGS.is_anthem_enabled)
+        checkbutton = ttk.Checkbutton(
+            self._parent.frame,
+            variable=self._is_anthem_enabled,
+            text="Хвилина мовчання і гімн України",
+            command=self._command,
+        )
+        checkbutton.grid(row=7, column=0, sticky="W", padx=5)
+        self._timer = None
+        self._command()
+
+    def _command(self):
+        SETTINGS.is_anthem_enabled = self._is_anthem_enabled.get()
+        if SETTINGS.is_anthem_enabled:
+            run_at = datetime.datetime.now().replace(**ANTHEM_TIME)
+            if run_at < datetime.datetime.now():
+                run_at += datetime.timedelta(days=1)
+            delta = run_at - datetime.datetime.now()
+            self._timer = self._parent.after(int(delta.total_seconds() * 1000), self._play)
+        else:
+            if self._timer is not None:
+                self._parent.after_cancel(self._timer)
+                self._timer = None
+
+    def _play(self):
+        if APP_STATE.SirenaNowPlaying:
+            return
+        print(datetime.datetime.now())
+        pygame.mixer.music.stop()
+        pygame.mixer.music.load(SILENCE_PATH)
+        pygame.mixer.music.play()
+        pygame.mixer.music.queue(ANTHEM_PATH)
+        self._parent.after(61000, self._command)
+
+
+class Autostart:
+    def __init__(self, parent: SettingsFrame):
+        self._parent = parent
+
+        self._is_autostart_enabled = tk.BooleanVar(value=SETTINGS.autostart)
+        auto_checkbutton = ttk.Checkbutton(parent.frame, variable=self._is_autostart_enabled, text="Автозапуск", command=self._command)
+        auto_checkbutton.grid(row=9, column=0, sticky="W", padx=5)
+
+    def _command(self):
+        SETTINGS.autostart = self._is_autostart_enabled.get()
+        if SETTINGS.autostart:
+            autostart.enable()
+        else:
+            autostart.disable()
+
+
+if __name__ == "__main__":
+    try:
+        app = App()
+        app.mainloop()
+    except Exception as err:
+        logger.exception(err)
