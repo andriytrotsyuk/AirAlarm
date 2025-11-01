@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=AirAlarm
+Name[uk]=Тривога
+Comment=Signals about air raid alerts in Ukraine
+Comment[uk]=Сповіщає про повітряну тривогу в Україні
+Categories=Utility
+Icon=AirAlarmIcon
+Exec=/opt/AirAlarm/airalarm

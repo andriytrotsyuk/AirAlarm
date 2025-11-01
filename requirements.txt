@@ -1,2 +1,5 @@
-pygame==2.2.0
-pyinstaller==5.8.0
+pygame==2.6.1
+pyinstaller==6.11.1
+git+https://github.com/UkraineAlarm/UkraineAlarm-python.git@master
+ttkbootstrap==1.14.2
+urllib3==2.5.0

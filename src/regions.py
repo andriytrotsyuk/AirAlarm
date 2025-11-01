@@ -1,118 +1,69 @@
-from datetime import timedelta
+import json
 
-TEST_ALARM_TIME = timedelta(minutes=11)
-NEXT_TEST_ALARM_AFTER = timedelta(minutes=1)
-TEST_NAME = f"Перевірка. Тривалість тривоги - {TEST_ALARM_TIME}. Час до наступної тривоги - {NEXT_TEST_ALARM_AFTER}."
-_REGIONS = [
-    {
-        "id": -1,
-        "name": "-",
-    },
-    {
-        "id": 0,
-        "name": TEST_NAME,
-    },
-    {
-        "id": 1,
-        "name": "Вінницька область",
-    },
-    {
-        "id": 2,
-        "name": "Волинська область",
-    },
-    {
-        "id": 3,
-        "name": "Дніпропетровська область",
-    },
-    {
-        "id": 4,
-        "name": "Донецька область",
-    },
-    {
-        "id": 5,
-        "name": "Житомирська область",
-    },
-    {
-        "id": 6,
-        "name": "Закарпатська область",
-    },
-    {
-        "id": 7,
-        "name": "Запорізька область",
-    },
-    {
-        "id": 8,
-        "name": "Івано-Франківська область",
-    },
-    {
-        "id": 9,
-        "name": "Київська область",
-    },
-    {
-        "id": 10,
-        "name": "Кіровоградська область",
-    },
-    {
-        "id": 11,
-        "name": "Луганська область",
-    },
-    {
-        "id": 12,
-        "name": "Львівська область",
-    },
-    {
-        "id": 13,
-        "name": "Миколаївська область",
-    },
-    {
-        "id": 14,
-        "name": "Одеська область",
-    },
-    {
-        "id": 15,
-        "name": "Полтавська область",
-    },
-    {
-        "id": 16,
-        "name": "Рівненська область",
-    },
-    {
-        "id": 17,
-        "name": "Сумська область",
-    },
-    {
-        "id": 18,
-        "name": "Тернопільська область",
-    },
-    {
-        "id": 19,
-        "name": "Харківська область",
-    },
-    {
-        "id": 20,
-        "name": "Херсонська область",
-    },
-    {
-        "id": 21,
-        "name": "Хмельницька область",
-    },
-    {
-        "id": 22,
-        "name": "Черкаська область",
-    },
-    {
-        "id": 23,
-        "name": "Чернівецька область",
-    },
-    {
-        "id": 24,
-        "name": "Чернігівська область",
-    },
-    {
-        "id": 25,
-        "name": "м. Київ",
-    },
-]
-NAMES = {state["id"]: state["name"] for state in _REGIONS}
-IDS = {state["name"]: state["id"] for state in _REGIONS}
-LIST = list(IDS.keys())
+from providers.ukrainealarm import get_states
+
+from settings import REGIONS_PATH
+
+
+class Regions:
+    def __init__(self):
+        with REGIONS_PATH.open() as f:
+            self._data = json.load(f)
+
+    def filter(self, text):
+        if not text:
+            return self._data.copy()
+        return [region for region in self._data if text in region['name'].lower()]
+
+    def get(self, identifier):
+        for region in self._data:
+            if region['id'] == identifier:
+                return region
+        return self._data[0]
+
+
+def init():
+    states = get_states()
+    flat = []
+    for state in states:
+        display_name = state.region_name
+        flat.append({
+            'id': state.region_id,
+            'name': state.region_name,
+            'display': display_name,
+        })
+        if state.region_child_ids:
+            for district in state.region_child_ids:
+                display_name = f"{district.region_name}\n{state.region_name}"
+                flat.append({
+                    'id': district.region_id,
+                    'name': district.region_name,
+                    'display': display_name,
+                })
+                if district.region_child_ids:
+                    for community in district.region_child_ids:
+                        display_name = f"{community.region_name}\n{district.region_name}\n{state.region_name}"
+                        flat.append({
+                            'id': community.region_id,
+                            'name': community.region_name,
+                            'display': display_name,
+                        })
+    flat = sorted(flat, key=_key)
+    with REGIONS_PATH.open(mode='w') as f:
+        json.dump(flat, f)
+
+
+# Ukrainian alphabet order for sorting
+ALPHABET = "АБВГҐДЕЄЖЗИІЇЙКЛМНОПРСТУФХЦЧШЩЬЮЯабвгґдеєжзиіїйклмнопрстуфхцчшщьюя"
+
+
+def _key(region):
+    main_name = region['name']
+    # Convert to sorting key based on Ukrainian alphabet
+    return [ALPHABET.index(char) if char in ALPHABET else ord(char) for char in main_name]
+
+
+if __name__ == '__main__':
+    init()
+else:
+    REGIONS = Regions()

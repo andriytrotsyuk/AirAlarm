@@ -1,14 +1,20 @@
-__all__ = ('enable', 'disable')
+__all__ = ('is_enabled', 'enable', 'disable')
 
 import getpass
 import os
 import shutil
 import sys
+from faulthandler import is_enabled
 from pathlib import Path
 
 if sys.platform == 'win32':
+    USER_NAME = getpass.getuser()
+    path = rf'C:\Users\{USER_NAME}\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\openAiralarm.bat'
+
+    def is_enabled():
+        return Path(path).exists()
+
     def enable():
-        USER_NAME = getpass.getuser()
         file_path = os.getcwd()
         bat_path = r'C:\Users\%s\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup' % USER_NAME
         with open(bat_path + '\\' + "openAiralarm.bat", "w+") as bat_file:
@@ -17,20 +23,24 @@ if sys.platform == 'win32':
             bat_file.write(r'start %s' % "airalarm.exe")
 
     def disable():
-        USER_NAME = getpass.getuser()
-        path = r'C:\Users\%s\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\openAiralarm.bat'
-        os.remove(path % USER_NAME)
+        os.remove(path)
 elif sys.platform == 'linux':
-    APPS_PATH = Path.home() / '.local/share/applications'
-    AUTOSTART_PATH = Path.home() / '.config/autostart'
+    from settings import AUTOSTART
+
+    APPS_PATH = Path.home() / '/usr/share/applications'
     FILENAME = 'airalarm.desktop'
+    path = AUTOSTART / FILENAME
+
+    def is_enabled():
+        return path.exists()
 
     def enable():
-        os.makedirs(AUTOSTART_PATH, exist_ok=True)
-        shutil.copy(APPS_PATH / FILENAME, AUTOSTART_PATH)
+        os.makedirs(AUTOSTART, exist_ok=True)
+        shutil.copy(APPS_PATH / FILENAME, AUTOSTART)
 
     def disable():
-        path = AUTOSTART_PATH / FILENAME
         path.unlink()
 else:
-    raise NotImplementedError()
+    # raise NotImplementedError()
+    def is_enabled():
+        return False
