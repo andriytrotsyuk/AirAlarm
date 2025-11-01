@@ -1,0 +1,7 @@
+Package: airalarm
+Version: 1.0.0
+Section: utils
+Priority: optional
+Architecture: amd64
+Maintainer: Andrii Trotsiuk <andriy.trotsyuk@gmail.com>
+Description: An application to signal about air raid alerts in Ukraine.

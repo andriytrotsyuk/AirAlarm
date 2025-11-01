@@ -8,7 +8,7 @@ import ttkbootstrap as ttk
 from urllib3.exceptions import MaxRetryError
 
 import autostart
-from conf import (
+from settings import (
     ICONS_PATH,
     START_PATH,
     END_PATH,
@@ -17,13 +17,15 @@ from conf import (
     ANTHEM_TIME,
     NETWORK_ERROR,
     FONT_FAMILY,
+    LOGS,
 )
 from providers import get_active_alarm_start_at, WAIT_MS
 from regions import REGIONS
 from storage import State
-from settings import SETTINGS
+from config import CONFIG
 
-LOG_FILENAME = 'airalarm.log'
+LOGS.mkdir(parents=True, exist_ok=True)
+LOG_FILENAME = LOGS / 'airalarm.log'
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 handler = logging.handlers.RotatingFileHandler(LOG_FILENAME, maxBytes=10 * 1024 * 1024, backupCount=5)
@@ -94,8 +96,8 @@ class Main:
         self.init()
 
     def init(self):
-        if SETTINGS.region_id:
-            region = REGIONS.get(SETTINGS.region_id)
+        if CONFIG.region_id:
+            region = REGIONS.get(CONFIG.region_id)
             self.status_page.on_region_selected(region)
         else:
             self.search_page.show()
@@ -241,7 +243,7 @@ class TimePicker:
             validate='all',
             validatecommand=(validate_command, '%P'),
         )
-        self._spinbox.set(str(SETTINGS.time))
+        self._spinbox.set(str(CONFIG.time))
         self._spinbox.grid(row=0, column=1, sticky=ttk.W, padx=(8, 0))
 
         minutes_label = ttk.Label(
@@ -251,7 +253,7 @@ class TimePicker:
         minutes_label.grid(row=0, column=2, sticky=ttk.W)
 
     def _validate(self, newval):
-        SETTINGS.time = int(newval)
+        CONFIG.time = int(newval)
 
 
 class AlertStatus:
@@ -294,7 +296,7 @@ class AlertStatus:
     def Refresh(self):
         try:
             if APP_STATE.alarmNotification:
-                start_at = get_active_alarm_start_at(SETTINGS.region_id)
+                start_at = get_active_alarm_start_at(CONFIG.region_id)
                 self.page.on_restore()
                 logger.debug('Are authorities signalling about air alarm now: %s', start_at)
                 logger.debug('Has siren played already: %s', APP_STATE.SirenaPlayed)
@@ -309,12 +311,12 @@ class AlertStatus:
                         APP_STATE.SirenaNowPlaying = True
                         APP_STATE.end = datetime.datetime.now() + datetime.timedelta(seconds=length)
                 else:
-                    end_play_at = start_at + datetime.timedelta(minutes=SETTINGS.time)
+                    end_play_at = start_at + datetime.timedelta(minutes=CONFIG.time)
                     if end_play_at < datetime.datetime.now(datetime.UTC):
                         APP_STATE.SirenaPlayed = True
                         self._on_notification_start()
                     if not APP_STATE.SirenaPlayed:  # Тривога
-                        seconds = SETTINGS.time * 60
+                        seconds = CONFIG.time * 60
                         pygame.mixer.music.stop()
                         self._end_notification_sound.stop()
                         self._start_notification_sound.play(loops=-1, maxtime=seconds * 1000, fade_ms=5 * 1000)
@@ -354,8 +356,8 @@ class AnthemSetting:
     def __init__(self, parent: Preferences):
         self._parent = parent
 
-        self._is_anthem_enabled = ttk.BooleanVar(value=SETTINGS.is_anthem_enabled)
-        self._is_anthem_enabled.set(SETTINGS.is_anthem_enabled)
+        self._is_anthem_enabled = ttk.BooleanVar(value=CONFIG.is_anthem_enabled)
+        self._is_anthem_enabled.set(CONFIG.is_anthem_enabled)
         label = ttk.Label(
             self._parent.label_frame,
             text='Хвилина мовчання і гімн України',
@@ -370,7 +372,7 @@ class AnthemSetting:
         checkbutton.grid(row=1, column=1, sticky=ttk.W, padx=8)
 
     def _command(self):
-        SETTINGS.is_anthem_enabled = self._is_anthem_enabled.get()
+        CONFIG.is_anthem_enabled = self._is_anthem_enabled.get()
 
 
 class AnthemPlayer:
@@ -388,7 +390,7 @@ class AnthemPlayer:
     def _play(self):
         if APP_STATE.SirenaNowPlaying:
             return
-        if not SETTINGS.is_anthem_enabled:
+        if not CONFIG.is_anthem_enabled:
             return
         pygame.mixer.music.load(SILENCE_PATH)
         pygame.mixer.music.play()
@@ -400,7 +402,7 @@ class Autostart:
     def __init__(self, parent: Preferences):
         self._parent = parent
 
-        self._is_autostart_enabled = ttk.BooleanVar(value=SETTINGS.autostart)
+        self._is_autostart_enabled = ttk.BooleanVar(value=autostart.is_enabled())
         label = ttk.Label(
             parent.label_frame,
             text='Автозапуск',
@@ -415,8 +417,7 @@ class Autostart:
         auto_checkbutton.grid(row=2, column=1, sticky=ttk.W, padx=8)
 
     def _command(self):
-        SETTINGS.autostart = self._is_autostart_enabled.get()
-        if SETTINGS.autostart:
+        if self._is_autostart_enabled.get():
             autostart.enable()
         else:
             autostart.disable()
@@ -443,7 +444,7 @@ class SearchPage:
         self._found_field.update(REGIONS.filter(text))
 
     def on_region_selected(self, region):
-        SETTINGS.region_id = region['id']
+        CONFIG.region_id = region['id']
         self.frame.grid_remove()
         self.main.status_page.on_region_selected(region)
 

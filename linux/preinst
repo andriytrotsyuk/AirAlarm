@@ -1,0 +1,65 @@
+#!/bin/sh
+
+set -e
+
+# Define the exact name of the executable process
+APP_PROCESS_NAME="opt/airalarm/airalarm"
+
+# $1 is the action argument: 'install', 'upgrade', or 'abort-upgrade'
+
+# Run cleanup only during installation or upgrade
+if [ "$1" = "install" ] || [ "$1" = "upgrade" ]; then
+
+    echo "Stopping previous version of $APP_PROCESS_NAME during upgrade..."
+
+    # Use pkill with the -f option to match the full command line,
+    # which is often necessary to find PyInstaller executables.
+    # The -e flag echoes the names of processes killed (for logging).
+    # The -o flag limits action to the oldest process, usually the running GUI.
+
+    if command -v pkill >/dev/null 2>&1; then
+        # Use pkill if available (preferred tool on modern systems)
+        pkill -e -f "$APP_PROCESS_NAME" || true
+    else
+        # Fallback to killall if pkill isn't available
+        # Note: killall can be less precise than pkill -f
+        killall -e "$APP_PROCESS_NAME" || true
+    fi
+
+    echo "Running pre-installation cleanup of legacy files..."
+
+    # Loop through all directories immediately inside /home
+    # NOTE: This only checks users with homes in /home/. It excludes /root.
+    for user_home in /home/*; do
+        # Check if the path is a valid user home directory
+        if [ -d "$user_home" ]; then
+
+            # --- DEFINE TARGETS FOR DELETION ---
+
+            # 1. Old app directory
+            OLD_DIR_PATH="$user_home/.local/opt/airalarm"
+            OLD_FILE_PATH1="$user_home/.local/share/applications/airalarm.desktop"
+            OLD_FILE_PATH2="$user_home/Desktop/airalarm.desktop"
+
+            # --- DELETION LOGIC ---
+
+            # Delete old app directory (recursively)
+            if [ -d "$OLD_DIR_PATH" ]; then
+                echo "Removing old directory: $OLD_DIR_PATH"
+                rm -rf "$OLD_DIR_PATH"
+            fi
+
+            if [ -f "$OLD_FILE_PATH1" ]; then
+                echo "Removing old file: $OLD_FILE_PATH1"
+                rm -f "$OLD_FILE_PATH1"
+            fi
+
+            if [ -f "$OLD_FILE_PATH2" ]; then
+                echo "Removing old file: $OLD_FILE_PATH2"
+                rm -f "$OLD_FILE_PATH2"
+            fi
+        fi
+    done
+fi
+
+exit 0

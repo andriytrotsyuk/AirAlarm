@@ -1,56 +1,49 @@
-__all__ = ["SETTINGS"]
+__all__ = (
+    'INTERNAL',
+    'FONT_FAMILY',
+    'CONFIG_APP',
+    'CONFIG_TEMPLATE_PATH',
+    'LOGS',
+    'ICONS_PATH',
+    'START_PATH',
+    'END_PATH',
+    'SILENCE_PATH',
+    'ANTHEM_PATH',
+    'ANTHEM_TIME',
+    'NETWORK_ERROR',
+    'REGIONS_PATH',
+    'AUTOSTART',
+)
 
-import json
+import os
+import sys
+from pathlib import Path
 
-from conf import SETTINGS_PATH
+if getattr(sys, 'frozen', False):
+    # Running in a PyInstaller bundle
+    RUNNING_FILE = sys.executable
+else:
+    # Running in a normal Python process
+    RUNNING_FILE = __file__
+PARENT = Path(RUNNING_FILE).parent
+INTERNAL = PARENT / "_internal"
+CONFIG_TEMPLATE_PATH = INTERNAL / "config.json"
+REGIONS_PATH = INTERNAL / "regions.json"
+ICONS_PATH = INTERNAL / "icons"
+SOUND_PATH = INTERNAL / "Sound"
 
+START_PATH = SOUND_PATH / "sirena.mp3"
+END_PATH = SOUND_PATH / "vdbj.mp3"
+SILENCE_PATH = SOUND_PATH / "hvilina.mp3"
+ANTHEM_PATH = SOUND_PATH / "gimn.mp3"
 
-class Settings:
-    def __init__(self):
-        with SETTINGS_PATH.open("r", encoding="utf-8") as f:
-            self._settings = json.load(f)
-        self.region_id = self._settings["region_id"]
-        self.time = self._settings["time"]
+ANTHEM_TIME = {'hour': 9, 'minute': 0, 'second': 0, 'microsecond': 0}
+NETWORK_ERROR = 'Інтернет зʼєднання відсутнє'
+FONT_FAMILY = 'Helvetica'
 
-    @property
-    def region_id(self):
-        return self._settings["region_id"]
-
-    @region_id.setter
-    def region_id(self, value):
-        self._settings["region_id"] = value
-        self._save()
-
-    @property
-    def time(self):
-        return self._settings["time"]
-
-    @time.setter
-    def time(self, value):
-        self._settings["time"] = value
-        self._save()
-    
-    @property
-    def is_anthem_enabled(self):
-        return self._settings["is_anthem_enabled"]
-    
-    @is_anthem_enabled.setter
-    def is_anthem_enabled(self, value):
-        self._settings["is_anthem_enabled"] = value
-        self._save()
-    
-    @property
-    def autostart(self):
-        return self._settings["autostart"]
-    
-    @autostart.setter
-    def autostart(self, value):
-        self._settings["autostart"] = value
-        self._save()
-    
-    def _save(self):
-        with SETTINGS_PATH.open("w", encoding="utf-8") as f:
-            json.dump(self._settings, f)
-
-
-SETTINGS = Settings()
+CONFIG_HOME = Path(os.getenv('XDG_CONFIG_HOME', default=Path.home() / '.config'))
+CONFIG_APP = CONFIG_HOME / 'airalarm'
+AUTOSTART = CONFIG_HOME / 'autostart'
+DATA_HOME = Path(os.getenv('XDG_DATA_HOME',	default=Path.home() / '.local/share'))
+DATA_APP = DATA_HOME / 'AirAlarm'
+LOGS = DATA_APP / 'logs'

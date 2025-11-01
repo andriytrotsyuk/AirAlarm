@@ -2,7 +2,7 @@ import json
 
 from providers.ukrainealarm import get_states
 
-from conf import REGIONS_PATH
+from settings import REGIONS_PATH
 
 
 class Regions:

@@ -1,0 +1,36 @@
+#!/bin/sh
+
+set -e
+
+# Action argument is $1. We ONLY execute the cleanup when purging.
+if [ "$1" = "purge" ]; then
+    echo "Post purging..."
+
+    # Loop through all directories immediately inside /home
+    for user_home in /home/*; do
+        if [ -d "$user_home" ]; then
+
+            # Define the exact path to the legacy autostart file
+            AUTOSTART_FILE="$user_home/.config/autostart/airalarm.desktop"
+
+            # Check if the file exists before attempting to delete it
+            if [ -f "$AUTOSTART_FILE" ]; then
+                echo "Removing autostart entry for user: $(basename "$user_home")"
+                # Use 'rm -f' as root on a path derived from user's home
+                rm -f "$AUTOSTART_FILE"
+            fi
+
+            # Define the exact path to the legacy autostart file
+            CONFIG_FILE="$user_home/.config/airalarm/config.json"
+
+            # Check if the file exists before attempting to delete it
+            if [ -f "$CONFIG_FILE" ]; then
+                echo "Removing config entry for user: $(basename "$user_home")"
+                # Use 'rm -f' as root on a path derived from user's home
+                rm -f "$CONFIG_FILE"
+            fi
+        fi
+    done
+fi
+
+exit 0
