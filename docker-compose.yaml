@@ -1,0 +1,7 @@
+services:
+  ubuntu:
+    build:
+      context: .
+    platform: linux/amd64
+    volumes:
+      - .:/mnt
