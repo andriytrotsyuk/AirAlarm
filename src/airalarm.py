@@ -312,7 +312,7 @@ class AlertStatus:
                         APP_STATE.end = datetime.datetime.now() + datetime.timedelta(seconds=length)
                 else:
                     end_play_at = start_at + datetime.timedelta(minutes=CONFIG.time)
-                    if end_play_at < datetime.datetime.now(datetime.UTC):
+                    if end_play_at < datetime.datetime.now(datetime.timezone.utc):
                         APP_STATE.SirenaPlayed = True
                         self._on_notification_start()
                     if not APP_STATE.SirenaPlayed:  # Тривога
