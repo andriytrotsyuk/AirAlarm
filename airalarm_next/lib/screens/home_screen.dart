@@ -4,8 +4,30 @@ import '../providers/app_state.dart';
 import 'views/status_view.dart';
 import 'views/search_view.dart';
 
-class HomeScreen extends StatelessWidget {
+import 'package:package_info_plus/package_info_plus.dart';
+
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String _version = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _version = packageInfo.version;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +57,7 @@ class HomeScreen extends StatelessWidget {
                   ?.copyWith(color: Theme.of(context).colorScheme.outline),
             ),
             Text(
-              'Версія 3.0.0',
+              'Версія $_version',
               style: Theme.of(context)
                   .textTheme
                   .bodySmall

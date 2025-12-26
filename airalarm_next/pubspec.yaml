@@ -1,5 +1,6 @@
-name: airalarm_next
-description: "A new Flutter project."
+name: airalarm
+description: "Signals about air raid alerts in Ukraine"
+repository: https://github.com/andriytrotsyuk/AirAlarm
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -38,6 +39,7 @@ dependencies:
   flutter_spinbox: ^0.13.1
   flutter_dotenv: ^5.2.1
   window_manager: ^0.5.1
+  package_info_plus: ^9.0.0
 
 dev_dependencies:
   flutter_test:
