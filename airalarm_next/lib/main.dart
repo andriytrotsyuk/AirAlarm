@@ -12,6 +12,7 @@ void main() async {
   await windowManager.ensureInitialized();
 
   WindowOptions windowOptions = const WindowOptions(
+    title: Constants.appName,
     size: Size(443, 600),
     center: true,
     titleBarStyle: TitleBarStyle.normal,
@@ -20,8 +21,7 @@ void main() async {
   windowManager.waitUntilReadyToShow(windowOptions, () async {
     await windowManager.show();
     await windowManager.focus();
-    await windowManager.setResizable(
-        false); // Python app: resizable(width=False, height=False)
+    await windowManager.setResizable(false);
   });
 
   runApp(const MyApp());

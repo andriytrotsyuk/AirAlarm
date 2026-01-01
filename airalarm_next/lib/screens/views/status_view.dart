@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_spinbox/flutter_spinbox.dart';
 import 'package:provider/provider.dart';
+import 'package:material_symbols_icons/symbols.dart';
 import '../../providers/app_state.dart';
 import '../../models/region.dart';
 
@@ -51,27 +52,44 @@ class StatusView extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  appState.connectionError != null
-                      ? Icons.signal_wifi_connected_no_internet_4_rounded
-                      : (appState.alarmNotification
-                          ? Icons.warning_rounded
-                          : Icons.check_circle_rounded),
+                  appState.audioError != null
+                      ? Symbols.no_sound_rounded
+                      : (appState.connectionError != null
+                          ? Symbols.signal_wifi_bad_rounded
+                          : (appState.alarmNotification
+                              ? Symbols.warning_rounded
+                              : Symbols.check_circle_rounded)),
                   size: 130,
-                  color: appState.connectionError != null
+                  fill: 1.0,
+                  color: appState.audioError != null
                       ? Colors.orange
-                      : (appState.alarmNotification
-                          ? Colors.red
-                          : Colors.green),
+                      : (appState.connectionError != null
+                          ? Colors.orange
+                          : (appState.alarmNotification
+                              ? Colors.red
+                              : Colors.green)),
                 ),
                 Text(
-                  appState.connectionError ??
-                      (appState.alarmNotification
-                          ? 'Тривога'
-                          : 'Немає тривоги'),
+                  appState.audioError ??
+                      (appState.connectionError ??
+                          (appState.alarmNotification
+                              ? 'Тривога'
+                              : 'Немає тривоги')),
                   style: Theme.of(context).textTheme.displaySmall?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
+                  textAlign: TextAlign.center,
                 ),
+                if (appState.audioError != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Перезапустіть застосунок після підключення аудіо',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ],
             ),
           ),

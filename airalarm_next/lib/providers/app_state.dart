@@ -18,6 +18,9 @@ class AppState with ChangeNotifier {
   String? _connectionError;
   String? get connectionError => _connectionError;
 
+  String? _audioError;
+  String? get audioError => _audioError;
+
   bool _isAlarm = false;
   bool get alarmNotification => _isAlarm;
 
@@ -44,6 +47,14 @@ class AppState with ChangeNotifier {
   AppState() {
     _loadSettings();
     _loadRegions();
+    _checkAudioAvailability();
+  }
+
+  void _init() {
+    if (_regionId != null && _regionId!.isNotEmpty) {
+      _startMonitoring();
+    }
+    _scheduleAnthem();
   }
 
   Future<void> _loadSettings() async {
@@ -51,12 +62,28 @@ class AppState with ChangeNotifier {
     _regionId = prefs.getString('region_id');
     _durationMinutes = prefs.getInt('duration') ?? 3;
     _isAnthemEnabled = prefs.getBool('is_anthem_enabled') ?? false;
-
-    if (_regionId != null && _regionId!.isNotEmpty) {
-      _startMonitoring();
-    }
-    _scheduleAnthem();
     notifyListeners();
+  }
+
+  Future<void> _checkAudioAvailability() async {
+    _audioError = null;
+    try {
+      await _audioPlayer.play(AssetSource(Constants.silenceSoundPath));
+    } catch (e) {
+      _audioError = 'Аудіо відключене';
+      print('Audio availability check failed: $e');
+      return;
+    } finally {
+      notifyListeners();
+    }
+    // We don't want to actually play silence indefinitely if it loops, but
+    // silence is short.
+    // Ideally stop it immediately if it works.
+    // But wait slightly to ensure it actually starts?
+    // play() is async, if it throws it throws.
+    // Let's stop it just in case.
+    await _audioPlayer.stop();
+    _init();
   }
 
   Future<void> _loadRegions() async {
@@ -213,15 +240,5 @@ class AppState with ChangeNotifier {
     await _anthemPlayer.stop();
     _isAnthemPlaying = false;
     notifyListeners();
-  }
-
-  @override
-  void dispose() {
-    _checkAlarmTimer?.cancel();
-    _stopSirenTimer?.cancel();
-    _anthemTimer?.cancel();
-    _audioPlayer.dispose();
-    _anthemPlayer.dispose();
-    super.dispose();
   }
 }
