@@ -41,6 +41,7 @@ dependencies:
   window_manager: ^0.5.1
   package_info_plus: ^9.0.0
   material_symbols_icons: ^4.2892.0
+  launch_at_startup: ^0.5.1
 
 dev_dependencies:
   flutter_test:

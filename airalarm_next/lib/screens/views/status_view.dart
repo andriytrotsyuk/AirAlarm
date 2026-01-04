@@ -159,8 +159,8 @@ class StatusView extends StatelessWidget {
                   title: Text('Автозапуск',
                       style: Theme.of(context).textTheme.bodyMedium),
                   trailing: Switch(
-                    value: false,
-                    onChanged: (val) => {},
+                    value: appState.isAutoStartEnabled,
+                    onChanged: (val) => appState.setAutoStartEnabled(val),
                   ),
                 ),
               ],

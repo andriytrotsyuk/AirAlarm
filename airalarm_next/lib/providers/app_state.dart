@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:launch_at_startup/launch_at_startup.dart';
 import '../api/ukraine_alarm_api.dart';
 import '../utils/constants.dart';
 import '../models/region.dart';
@@ -32,6 +33,9 @@ class AppState with ChangeNotifier {
 
   bool _isAnthemEnabled = false;
   bool get isAnthemEnabled => _isAnthemEnabled;
+
+  bool _isAutoStartEnabled = false;
+  bool get isAutoStartEnabled => _isAutoStartEnabled;
 
   Timer? _checkAlarmTimer;
 
@@ -62,6 +66,7 @@ class AppState with ChangeNotifier {
     _regionId = prefs.getString('region_id');
     _durationMinutes = prefs.getInt('duration') ?? 3;
     _isAnthemEnabled = prefs.getBool('is_anthem_enabled') ?? false;
+    _isAutoStartEnabled = await launchAtStartup.isEnabled();
     notifyListeners();
   }
 
@@ -123,6 +128,16 @@ class AppState with ChangeNotifier {
     _isAnthemEnabled = enabled;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('is_anthem_enabled', enabled);
+    notifyListeners();
+  }
+
+  Future<void> setAutoStartEnabled(bool enabled) async {
+    if (enabled) {
+      await launchAtStartup.enable();
+    } else {
+      await launchAtStartup.disable();
+    }
+    _isAutoStartEnabled = await launchAtStartup.isEnabled();
     notifyListeners();
   }
 
