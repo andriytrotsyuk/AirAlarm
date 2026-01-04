@@ -31,7 +31,7 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) {  // check prod file name and test autostart
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AppState()),
