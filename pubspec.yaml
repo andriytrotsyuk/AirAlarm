@@ -17,7 +17,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.0.1
+version: 3.0.0
 
 environment:
   sdk: '>=3.2.6 <4.0.0'
@@ -54,6 +54,7 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^2.0.0
   flutter_launcher_icons: ^0.14.4
+  inno_bundle: ^0.11.2
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -108,3 +109,13 @@ flutter_launcher_icons:
   macos:
     generate: true
 
+inno_bundle:
+  id: 44faee90-e9ba-11f0-a5dc-0b2552ed6632
+  name: Тривога
+  description: "Сповіщає про сигнал тривоги в Україні"
+  publisher: zd4school
+  installer_icon: "installer.png"
+  languages:
+    - ukrainian
+  admin: "auto"
+  license_file: "LICENSE.uk.txt"
