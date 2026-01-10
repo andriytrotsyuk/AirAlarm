@@ -49,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen>
     String newIcon;
 
     if (appState.connectionError != null) {
-      newIcon = 'assets/undefined.ico';
+      newIcon = 'assets/unknown.ico';
     } else if (appState.alarmNotification) {
       newIcon = 'assets/alarm.ico';
     } else {
@@ -67,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen>
     // Initial icon set
     final appState = Provider.of<AppState>(context, listen: false);
     if (appState.connectionError != null || appState.audioError != null) {
-      _currentIcon = 'assets/undefined.ico';
+      _currentIcon = 'assets/unknown.ico';
     } else if (appState.alarmNotification) {
       _currentIcon = 'assets/alarm.ico';
     } else {
