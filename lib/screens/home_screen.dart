@@ -9,6 +9,9 @@ import 'views/search_view.dart';
 
 import 'package:package_info_plus/package_info_plus.dart';
 
+import 'views/instruction_dialog.dart';
+import 'views/about_dialog.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -127,6 +130,20 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
+  void _showInstructions() {
+    showDialog(
+      context: context,
+      builder: (context) => const InstructionDialog(),
+    );
+  }
+
+  void _showAbout() {
+    showDialog(
+      context: context,
+      builder: (context) => const AboutAppDialog(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -147,19 +164,15 @@ class _HomeScreenState extends State<HomeScreen>
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              '© 2025 zd4school – Ліцензія MIT',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: Theme.of(context).colorScheme.outline),
+            IconButton(
+              icon: const Icon(Icons.help_outline),
+              onPressed: _showInstructions,
+              tooltip: 'Інструкція',
             ),
-            Text(
-              'Версія $_version',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: Theme.of(context).colorScheme.outline),
+            IconButton(
+              icon: const Icon(Icons.info_outline),
+              onPressed: _showAbout,
+              tooltip: 'Про програму',
             ),
           ],
         ),
