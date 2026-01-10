@@ -42,6 +42,7 @@ dependencies:
   package_info_plus: ^9.0.0
   material_symbols_icons: ^4.2892.0
   launch_at_startup: ^0.5.1
+  tray_manager: ^0.5.2
 
 dev_dependencies:
   flutter_test:
@@ -72,6 +73,8 @@ flutter:
     - assets/sounds/
     - assets/regions.json
     - .env
+    - assets/icon.ico
+    - assets/icon.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
