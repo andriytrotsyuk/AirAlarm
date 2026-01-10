@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
-import 'dart:io';
 
 import '../providers/app_state.dart';
 import 'views/status_view.dart';
@@ -28,6 +27,12 @@ class _HomeScreenState extends State<HomeScreen>
     trayManager.addListener(this);
     _init();
     _loadVersion();
+
+    // Listen to AppState changes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final appState = Provider.of<AppState>(context, listen: false);
+      appState.addListener(_updateTrayIcon);
+    });
   }
 
   @override
@@ -37,11 +42,38 @@ class _HomeScreenState extends State<HomeScreen>
     super.dispose();
   }
 
+  String _currentIcon = 'assets/safe.ico';
+
+  void _updateTrayIcon() {
+    final appState = Provider.of<AppState>(context, listen: false);
+    String newIcon;
+
+    if (appState.connectionError != null) {
+      newIcon = 'assets/undefined.ico';
+    } else if (appState.alarmNotification) {
+      newIcon = 'assets/alarm.ico';
+    } else {
+      newIcon = 'assets/safe.ico';
+    }
+
+    if (_currentIcon != newIcon) {
+      _currentIcon = newIcon;
+      trayManager.setIcon(newIcon);
+    }
+  }
+
   void _init() async {
     await windowManager.setPreventClose(true);
-    await trayManager.setIcon(
-      Platform.isWindows ? 'assets/icon.ico' : 'assets/icon.png',
-    );
+    // Initial icon set
+    final appState = Provider.of<AppState>(context, listen: false);
+    if (appState.connectionError != null || appState.audioError != null) {
+      _currentIcon = 'assets/undefined.ico';
+    } else if (appState.alarmNotification) {
+      _currentIcon = 'assets/alarm.ico';
+    } else {
+      _currentIcon = 'assets/safe.ico';
+    }
+    await trayManager.setIcon(_currentIcon);
     await trayManager.setToolTip('Повітряна тривога');
     Menu menu = Menu(
       items: [
