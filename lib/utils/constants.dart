@@ -4,6 +4,7 @@ class Constants {
   static String get apiKey => dotenv.env['API_KEY'] ?? '';
   static const String apiHost = 'https://api.ukrainealarm.com';
   static const String appName = 'Тривога';
+  static const Duration alarmCheckInterval = Duration(seconds: 10);
 
   // Asset paths
   static const String startSoundPath = 'sounds/sirena.mp3';

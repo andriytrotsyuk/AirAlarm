@@ -43,6 +43,8 @@ dependencies:
   material_symbols_icons: ^4.2892.0
   launch_at_startup: ^0.5.1
   tray_manager: ^0.5.2
+  logger: ^2.7.0
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:
@@ -116,8 +118,9 @@ inno_bundle:
   name: Тривога
   description: "Сповіщає про сигнал тривоги в Україні"
   publisher: zd4school
-  installer_icon: "icons/installer.png"
+  installer_icon: "icons/installer.ico"
   languages:
     - ukrainian
-  admin: "auto"
+  admin: false
   license_file: "LICENSE.uk.txt"
+  vc_redist: download

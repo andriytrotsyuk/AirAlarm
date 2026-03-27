@@ -8,6 +8,7 @@ import 'package:launch_at_startup/launch_at_startup.dart';
 import '../api/ukraine_alarm_api.dart';
 import '../utils/constants.dart';
 import '../models/region.dart';
+import '../utils/logger.dart';
 
 class AppState with ChangeNotifier {
   final UkraineAlarmAPI _api = UkraineAlarmAPI();
@@ -74,9 +75,9 @@ class AppState with ChangeNotifier {
     _audioError = null;
     try {
       await _audioPlayer.play(AssetSource(Constants.silenceSoundPath));
-    } catch (e) {
+    } catch (e, stackTrace) {
       _audioError = 'Аудіо відключене';
-      print('Audio availability check failed: $e');
+      LoggerService.e('Audio availability check failed', e, stackTrace);
       return;
     } finally {
       notifyListeners();
@@ -144,7 +145,7 @@ class AppState with ChangeNotifier {
   void _startMonitoring() {
     _checkAlarmTimer?.cancel();
     _checkAlarmTimer =
-        Timer.periodic(const Duration(seconds: 2), (timer) => _checkAlarm());
+        Timer.periodic(Constants.alarmCheckInterval, (timer) => _checkAlarm());
     _checkAlarm(); // Initial check
   }
 
@@ -169,9 +170,9 @@ class AppState with ChangeNotifier {
         final endPlayAt = startAt.add(Duration(minutes: _durationMinutes));
         _playSiren(endPlayAt);
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       _connectionError = 'Помилка з\'єднання';
-      print('Error checking alarm: $e');
+      LoggerService.e('Error checking alarm', e, stackTrace);
     }
     notifyListeners();
   }
@@ -191,8 +192,8 @@ class AppState with ChangeNotifier {
     }
 
     _sirenPlaying = true;
-    await _audioPlayer.play(AssetSource(Constants.startSoundPath));
     await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+    await _audioPlayer.play(AssetSource(Constants.startSoundPath));
 
     _stopSirenTimer = Timer(durationToWait, () {
       _stopSiren();

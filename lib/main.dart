@@ -7,9 +7,11 @@ import 'dart:io';
 import 'providers/app_state.dart';
 import 'screens/home_screen.dart';
 import 'utils/constants.dart';
+import 'utils/logger.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await LoggerService.init();
   await dotenv.load(fileName: ".env");
   await windowManager.ensureInitialized();
 
