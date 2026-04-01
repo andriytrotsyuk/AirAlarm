@@ -110,8 +110,6 @@ flutter_launcher_icons:
   windows:
     generate: true
     icon_size: 256 # Windows icons can be up to 256x256
-  macos:
-    generate: true
 
 inno_bundle:
   id: 44faee90-e9ba-11f0-a5dc-0b2552ed6632

@@ -93,7 +93,7 @@ BEGIN
             VALUE "FileDescription", "Сповіщає про сигнал тривоги в Україні" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "airalarm" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2025 zd4school. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 zd4school. All rights reserved." "\0"
             VALUE "OriginalFilename", "airalarm.exe" "\0"
             VALUE "ProductName", "Тривога" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"

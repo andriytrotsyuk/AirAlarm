@@ -103,10 +103,12 @@ This project uses [`inno_bundle`](https://pub.dev/packages/inno_bundle) to gener
 
 **Requirements:**
 - [Inno Setup](https://jrsoftware.org/isdl.php) must be installed on your system
+- A path to the project must not contain cyrillic symbols
 
 **Build the installer:**
 
 ```bash
+flutter build windows --release
 dart run inno_bundle
 ```
 
