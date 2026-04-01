@@ -8,7 +8,7 @@ class Constants {
 
   // Asset paths
   static const String startSoundPath = 'sounds/sirena.mp3';
-  static const String endSoundPath = 'sounds/vdbj.mp3';
+  static const String endSoundPath = 'sounds/end_man.mp3';
   static const String minuteSoundPath = 'sounds/hvilina.mp3';
   static const String anthemSoundPath = 'sounds/gimn.mp3';
   static const String silenceSoundPath = 'sounds/silence.mp3';
