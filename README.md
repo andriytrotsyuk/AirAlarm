@@ -64,7 +64,7 @@ Before you begin, ensure you have the following installed:
 
 ### 1. Clone the repository
 
-```bash
+```ps
 git clone https://github.com/andriytrotsyuk/AirAlarm.git
 cd AirAlarm
 ```
@@ -83,13 +83,13 @@ UKRAINE_ALARM_API_KEY=your_api_key_here
 
 ### 3. Install dependencies
 
-```bash
+```ps
 flutter pub get
 ```
 
 ### 4. Run the application
 
-```bash
+```ps
 flutter run -d windows
 ```
 
@@ -107,15 +107,14 @@ This project uses [`inno_bundle`](https://pub.dev/packages/inno_bundle) to gener
 
 **Build the installer:**
 
-```bash
-flutter build windows --release
-dart run inno_bundle
+```ps
+powershell -ExecutionPolicy Bypass -File .\build_windows.ps1
 ```
 
 The generated installer (`.exe`) will be saved to:
 
 ```
-build\inno_bundle\
+build\windows\x64\installer\Release\
 ```
 
 ---

@@ -119,6 +119,5 @@ inno_bundle:
   installer_icon: "icons/installer.ico"
   languages:
     - ukrainian
-  admin: false
+  admin: true
   license_file: "LICENSE.uk.txt"
-  vc_redist: download
